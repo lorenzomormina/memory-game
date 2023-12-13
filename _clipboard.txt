@@ -1,0 +1,8 @@
+- Main
+    - Board
+        - children: Card
+    - ScoreLabel
+    - Menu
+        - RandomButton
+        - ResetButton
+        - DebugButton

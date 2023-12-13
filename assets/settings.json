@@ -1,0 +1,47 @@
+{
+    "debug": true,
+    "appName": "memory",
+    "winTitle": "Memory",
+    "winSize": [ 800, 600 ],
+    "bgColor": [ 150, 150, 150 ],
+    "boardMargin": 10,
+    "cardsMargin": 10,
+    "scoreLabel": {
+        "format": "Pairs left: %d. Attempts: %d.",
+        "fontSize": 14,
+        "color": [ 255, 255, 255 ],
+        "posX": 20,
+        "marginTop": 10
+    },
+    "btnReset": {
+        "text": "Reset",
+        "fontSize": 14,
+        "color": [ 255, 255, 255 ],
+        "bgColor": [ 0, 0, 0 ],
+        "size": [100,30],
+        "marginTop": 10,
+        "posX": 20
+    },
+    "btnRandom": {
+        "text": "Random",
+        "fontSize": 14,
+        "color": [ 255, 255, 255 ],
+        "bgColor": [ 0, 0, 0 ],
+        "size": [100,30],
+        "marginTop": 10,
+        "posX": 20
+    },
+    "btnDebug": {
+        "textAlt": "Debug [ON]",
+        "text": "Debug [OFF]",
+        "fontSize": 14,
+        "color": [ 255, 255, 255 ],
+        "bgColor": [ 0, 0, 0 ],
+        "size": [100,30],
+        "marginTop": 10,
+        "alt": false,
+        "posX": 20
+    },
+    "timerFlipback": 0.5,
+    "selectedScale": 1.2
+}
