@@ -1,0 +1,50 @@
+folder "save", containing an "index.json" and multiple files
+    index.json:
+        lastId: $
+        matches: [
+            {
+                id: $
+                timestamp: $
+                pairCount: $
+                attempts: $
+            }
+        ]
+    
+    match-$.txt contains the steps that can be "replayed" inside the application
+
+
+plan:
+
+button changes color on hover
+"Reset" is the only button and clicking it will open a confirmation prompt
+code functionality to have less cards to play with, can be set in settings.json
+save steps in memory and, when done, button appears to save the match data and steps to be replayed later
+main menu with: play or replay.
+replay shows a list of games. double click one to view.
+
+
+---
+
+tilde opens a console
+`enable_debugging()` uses lua to enable debugging mode
+when debugging, a floating window appears with some functions
+    "Reload UI" / F5 / `reload_ui()`
+    "Random Card" / random_card()
+    "Debug OFF" / disable_debugging()
+
+
+
+---
+
+- wait time between cards reveal, especially between cards disappear or turn back down.
+- animation when turning cards (either rotating, or transparent phasing)
+- debug should be activated through a keybinding (F3, like minecraft), after showing a comfirmation prompt.
+- reset comfirmation prompt
+- when cards are clicked to fast, attempts increment only by 1
+
++ use tilde/grave to open console command
++ be able to write inside console command
++ integrate lua and interop
++ send commands through console, start with resize_console and move_console
+
+- f5 without changing config, does something which shouldn't do
