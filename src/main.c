@@ -28,6 +28,13 @@ int deck_xpos_f(int i);
 int deck_ypos_f(int i);
 void load_settings(bool first);
 
+int quit(lua_State *L)
+{
+    running = 0;
+    return 0;
+}
+
+
 int main()
 {
     init();
@@ -56,6 +63,10 @@ int main()
 
 void init()
 {
+    L = luaL_newstate();
+    luaL_openlibs(L);
+
+    lua_register(L, "quit", quit);
     //
 
     srand(time(0));
@@ -180,6 +191,9 @@ void processEvent()
             case ALLEGRO_KEY_F5:
                 load_settings(false);
                 break;
+            case ALLEGRO_KEY_F3:
+                consoleActive = !consoleActive;
+                break;
             }
             continue;
         }
@@ -215,6 +229,29 @@ void processEvent()
                 sprintf(scoreLabel.text, scoreLabel.format, currScore, maxScore);
             }
         }
+
+        if (ev.type == ALLEGRO_EVENT_KEY_CHAR)
+        {
+            if (consoleActive) {
+                if (ev.keyboard.unichar >= 32 && ev.keyboard.unichar <= 126) {
+                    console.cmd[console.cmdSize++] = ev.keyboard.unichar;
+                    console.cmd[console.cmdSize] = 0;
+                }
+                else if (ev.keyboard.keycode == ALLEGRO_KEY_BACKSPACE) {
+                    if (console.cmdSize > 0) {
+                        console.cmd[--console.cmdSize] = 0;
+                    }
+                }
+                else if (ev.keyboard.keycode == ALLEGRO_KEY_ENTER) {
+                    //console_history_add(&console, console.text);
+                    if (luaL_dostring(L, console.cmd) != LUA_OK) {
+                        sprintf(console.text, "Error: %s\n", lua_tostring(L, -1));
+                    }
+                    console.cmd[0] = 0;
+                    console.cmdSize = 0;
+                }
+            }
+        }
     }
 }
 
@@ -232,6 +269,9 @@ void draw()
         label_draw(&confPrompt.label);
         button_draw(&confPrompt.yes);
         button_draw(&confPrompt.no);
+    }
+    if (consoleActive) {
+        console_draw(&console);
     }
 }
 
@@ -506,6 +546,25 @@ void load_settings(bool first)
     confPrompt.no.h = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/size/1")->valueint;
     strcpy(confPrompt.no.text, cJSONUtils_GetPointer(config, "/confPrompt/btnNo/text")->valuestring);
 
+    cJSON *consoleConfig = cJSONUtils_GetPointer(config, "/console");
+    console.x = cJSONUtils_GetPointer(consoleConfig, "/pos/0")->valueint;
+    console.y = cJSONUtils_GetPointer(consoleConfig, "/pos/1")->valueint;
+    console.w = cJSONUtils_GetPointer(consoleConfig, "/size/0")->valueint;
+    console.h = cJSONUtils_GetPointer(consoleConfig, "/size/1")->valueint;
+    console.fontSize = cJSONUtils_GetPointer(consoleConfig, "/fontSize")->valueint;
+    console.font = add_font(fonts, console.fontSize);
+    r = cJSONUtils_GetPointer(consoleConfig, "/color/0")->valueint;
+    g = cJSONUtils_GetPointer(consoleConfig, "/color/1")->valueint;
+    b = cJSONUtils_GetPointer(consoleConfig, "/color/2")->valueint;
+    console.color = al_map_rgb(r, g, b);
+    r = cJSONUtils_GetPointer(consoleConfig, "/fontColor/0")->valueint;
+    g = cJSONUtils_GetPointer(consoleConfig, "/fontColor/1")->valueint;
+    b = cJSONUtils_GetPointer(consoleConfig, "/fontColor/2")->valueint;
+    console.fontColor = al_map_rgb(r, g, b);
+    strcpy(console.prompt, cJSONUtils_GetPointer(consoleConfig, "/prompt")->valuestring);
+    console.historyIndex = 0;
+    console.historySize = 0;
+    console.cmdSize = 0;
 
     // clear marked fonts
     clear_fonts(fonts);

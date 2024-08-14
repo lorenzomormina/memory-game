@@ -7,6 +7,10 @@
 #include "Font.h"
 #include "Widgets.h"
 
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+
 
 // settings
 // --------
@@ -26,6 +30,7 @@ extern Button debugButton;
 extern float TIMER_FLIPBACK;
 extern float SELECTED_SCALE;
 extern ConfirmationPrompt confPrompt;
+extern Console console;
 
 // resources
 // ---------
@@ -62,5 +67,8 @@ extern int mouseX, mouseY;
 extern int timerActive;
 extern int isDebug;
 extern bool confPromptActive;
+extern bool consoleActive;
 // ---
 // ---
+
+extern lua_State *L;

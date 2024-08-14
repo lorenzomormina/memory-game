@@ -18,6 +18,7 @@ Button debugButton;
 float TIMER_FLIPBACK;
 float SELECTED_SCALE;
 ConfirmationPrompt confPrompt;
+Console console;
 
 // resources
 // ---------
@@ -53,6 +54,9 @@ int maxScore, currScore;
 int mouseX, mouseY;
 int timerActive;
 int isDebug;
-bool confPromptActive;
+bool confPromptActive; 
+bool consoleActive = false;
 // ---
 // ---
+
+lua_State *L;
