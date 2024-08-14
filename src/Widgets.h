@@ -30,6 +30,14 @@ typedef struct Label {
     ALLEGRO_FONT *font;
 } Label;
 
+typedef struct ConfirmationPrompt {
+    int x, y, w, h;
+    ALLEGRO_COLOR bgColor;
+    Label label;
+    Button yes;
+    Button no;
+} ConfirmationPrompt;
+
 
 void button_draw(Button *b)
 {

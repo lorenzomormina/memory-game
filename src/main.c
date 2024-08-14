@@ -30,6 +30,7 @@ Button randomButton;
 Button debugButton;
 float TIMER_FLIPBACK;
 float SELECTED_SCALE;
+ConfirmationPrompt confPrompt;
 
 // resources
 // ---------
@@ -67,6 +68,7 @@ int maxScore, currScore;
 int mouseX, mouseY;
 int timerActive;
 int isDebug = 0;
+bool confPromptActive = false;
 // ---
 // ---
 
@@ -184,33 +186,46 @@ void processEvent()
             mouseX = ev.mouse.x;
             mouseY = ev.mouse.y;
 
-            if (rect_contains(WIDTH, 2 * boardMargin + 4 * (2 * cardsMargin + DHEI), 0, 0, mouseX, mouseY) && !timerActive) {
-                bool res = deck_reveal_card(&deck, mouseX, mouseY, DWID, DHEI);
-                if (res) {
-                    al_start_timer(timer);
-                    timerActive = 1;
+            if (!confPromptActive) {
+
+                if (rect_contains(WIDTH, 2 * boardMargin + 4 * (2 * cardsMargin + DHEI), 0, 0, mouseX, mouseY) && !timerActive) {
+                    bool res = deck_reveal_card(&deck, mouseX, mouseY, DWID, DHEI);
+                    if (res) {
+                        al_start_timer(timer);
+                        timerActive = 1;
+                    }
+                    continue;
                 }
-                continue;
-            }
 
-            if (rect_contains(resetButton.w, resetButton.h, resetButton.x, resetButton.y, mouseX, mouseY)) {
-                resetGame();
-                continue;
-            }
-
-            if (rect_contains(randomButton.w, randomButton.h, randomButton.x, randomButton.y, mouseX, mouseY)) {
-                bool res = deck_reveal_random_card(&deck, DWID, DHEI);
-                if (res) {
-                    al_start_timer(timer);
-                    timerActive = 1;
+                if (rect_contains(resetButton.w, resetButton.h, resetButton.x, resetButton.y, mouseX, mouseY)) {
+                    //resetGame();
+                    confPromptActive = true;
+                    continue;
                 }
-                continue;
-            }
 
-            if (rect_contains(debugButton.w, debugButton.h, debugButton.x, debugButton.y, mouseX, mouseY)) {
-                isDebug = !isDebug;
-                debugButton.alt = isDebug;
-                continue;
+                if (rect_contains(randomButton.w, randomButton.h, randomButton.x, randomButton.y, mouseX, mouseY)) {
+                    bool res = deck_reveal_random_card(&deck, DWID, DHEI);
+                    if (res) {
+                        al_start_timer(timer);
+                        timerActive = 1;
+                    }
+                    continue;
+                }
+
+                if (rect_contains(debugButton.w, debugButton.h, debugButton.x, debugButton.y, mouseX, mouseY)) {
+                    isDebug = !isDebug;
+                    debugButton.alt = isDebug;
+                    continue;
+                }
+            }
+            else {
+                if (rect_contains(confPrompt.yes.w, confPrompt.yes.h, confPrompt.yes.x, confPrompt.yes.y, mouseX, mouseY)) {
+                    resetGame();
+                    confPromptActive = false;
+                }
+                else if (rect_contains(confPrompt.no.w, confPrompt.no.h, confPrompt.no.x, confPrompt.no.y, mouseX, mouseY)) {
+                    confPromptActive = false;
+                }
             }
         }
 
@@ -269,6 +284,14 @@ void draw()
     button_draw(&resetButton);
     button_draw(&randomButton);
     button_draw(&debugButton);
+    if (confPromptActive) {
+        int x = confPrompt.x;
+        int y = confPrompt.y;
+        al_draw_filled_rectangle(x, y, x + confPrompt.w, y + confPrompt.h, confPrompt.bgColor);
+        label_draw(&confPrompt.label);
+        button_draw(&confPrompt.yes);
+        button_draw(&confPrompt.no);
+    }
 }
 
 
@@ -287,7 +310,7 @@ void deck_draw(Deck *d)
         switch (ci->state)
         {
         case CSTATE_FACEDOWN:
-            if (rect_contains(DWID, DHEI, ci->xpos, ci->ypos, state.x, state.y)) {
+            if (rect_contains(DWID, DHEI, ci->xpos, ci->ypos, state.x, state.y) && !confPromptActive) {
                 dw = DWID * SELECTED_SCALE;
                 dh = DHEI * SELECTED_SCALE;
                 dx = ci->xpos - (dw - DWID) / 2;
@@ -479,6 +502,68 @@ void load_settings(bool first)
 
     TIMER_FLIPBACK = cJSONUtils_GetPointer(config, "/timerFlipback")->valuedouble;
     SELECTED_SCALE = cJSONUtils_GetPointer(config, "/selectedScale")->valuedouble;
+
+    //
+
+
+
+    confPrompt.w = cJSONUtils_GetPointer(config, "/confPrompt/size/0")->valueint;
+    confPrompt.h = cJSONUtils_GetPointer(config, "/confPrompt/size/1")->valueint;
+
+    // define x and y such that the prompt is centered
+    confPrompt.x = (WIDTH - confPrompt.w) / 2;
+    confPrompt.y = (HEIGHT - confPrompt.h) / 2;
+
+    int x = confPrompt.x;
+    int y = confPrompt.y;
+
+    r = cJSONUtils_GetPointer(config, "/confPrompt/bgColor/0")->valueint;
+    g = cJSONUtils_GetPointer(config, "/confPrompt/bgColor/1")->valueint;
+    b = cJSONUtils_GetPointer(config, "/confPrompt/bgColor/2")->valueint;
+    confPrompt.bgColor = al_map_rgb(r, g, b);
+    confPrompt.label.x = cJSONUtils_GetPointer(config, "/confPrompt/label/pos/0")->valueint + x;
+    confPrompt.label.y = cJSONUtils_GetPointer(config, "/confPrompt/label/pos/1")->valueint + y;
+    confPrompt.label.fontSize = cJSONUtils_GetPointer(config, "/confPrompt/label/fontSize")->valueint;
+    confPrompt.label.font = add_font(fonts, confPrompt.label.fontSize);
+    r = cJSONUtils_GetPointer(config, "/confPrompt/label/color/0")->valueint;
+    g = cJSONUtils_GetPointer(config, "/confPrompt/label/color/1")->valueint;
+    b = cJSONUtils_GetPointer(config, "/confPrompt/label/color/2")->valueint;
+    confPrompt.label.color = al_map_rgb(r, g, b);
+    strcpy(confPrompt.label.text, cJSONUtils_GetPointer(config, "/confPrompt/label/text")->valuestring);
+
+    // Button "Yes"
+    confPrompt.yes.x = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/pos/0")->valueint + x;
+    confPrompt.yes.y = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/pos/1")->valueint + y;
+    confPrompt.yes.fontSize = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/fontSize")->valueint;
+    confPrompt.yes.font = add_font(fonts, confPrompt.yes.fontSize);
+    r = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/color/0")->valueint;
+    g = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/color/1")->valueint;
+    b = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/color/2")->valueint;
+    confPrompt.yes.color = al_map_rgb(r, g, b);
+    r = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/bgColor/0")->valueint;
+    g = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/bgColor/1")->valueint;
+    b = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/bgColor/2")->valueint;
+    confPrompt.yes.bgColor = al_map_rgb(r, g, b);
+    confPrompt.yes.w = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/size/0")->valueint;
+    confPrompt.yes.h = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/size/1")->valueint;
+    strcpy(confPrompt.yes.text, cJSONUtils_GetPointer(config, "/confPrompt/btnYes/text")->valuestring);
+
+    // Button "No"
+    confPrompt.no.x = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/pos/0")->valueint + x;
+    confPrompt.no.y = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/pos/1")->valueint + y;
+    confPrompt.no.fontSize = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/fontSize")->valueint;
+    confPrompt.no.font = add_font(fonts, confPrompt.no.fontSize);
+    r = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/color/0")->valueint;
+    g = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/color/1")->valueint;
+    b = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/color/2")->valueint;
+    confPrompt.no.color = al_map_rgb(r, g, b);
+    r = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/bgColor/0")->valueint;
+    g = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/bgColor/1")->valueint;
+    b = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/bgColor/2")->valueint;
+    confPrompt.no.bgColor = al_map_rgb(r, g, b);
+    confPrompt.no.w = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/size/0")->valueint;
+    confPrompt.no.h = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/size/1")->valueint;
+    strcpy(confPrompt.no.text, cJSONUtils_GetPointer(config, "/confPrompt/btnNo/text")->valuestring);
 
 
     // clear marked fonts
