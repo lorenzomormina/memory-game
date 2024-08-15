@@ -12,39 +12,25 @@
 #include "Widgets.h"
 #include "utils.h"
 #include "globals.h"
-
+#include "event.h"
 
 
 void init();
 void resetGame();
 void processEvent();
 void draw();
-void card_value_img_region(int value, float *sx, float *sy);
-
-void deck_draw(Deck *d);
-
-
-int deck_xpos_f(int i);
-int deck_ypos_f(int i);
 void load_settings(bool first);
 
-int quit(lua_State *L)
-{
-    running = 0;
-    return 0;
-}
+int quit(lua_State *L);
 
 
 int main()
 {
     init();
-
-    double lastTime = 0;
     while (running)
     {
         processEvent();
     }
-
     return 0;
 }
 
@@ -84,13 +70,16 @@ void init()
     SWID = al_get_bitmap_width(cardsImg) / 11;
     SHEI = al_get_bitmap_height(cardsImg) / 3;
 
+
     load_settings(true);
 
+    deck_init(&deck, DWID, DHEI, SWID, SHEI, SELECTED_SCALE, alphaTint, cardsImg);
 
     timer = al_create_timer(TIMER_FLIPBACK);
     al_register_event_source(eventQueue, al_get_timer_event_source(timer));
 
     // Create and start the timer
+    // WARN: this setting won't refresh on F5
     int fps = cJSONUtils_GetPointer(config, "/frameRate")->valueint;
     fpsTimer = al_create_timer(1.0 / fps);
     al_register_event_source(eventQueue, al_get_timer_event_source(fpsTimer));
@@ -113,150 +102,14 @@ void resetGame()
     currScore = 20;
     maxScore = 0;
     sprintf(scoreLabel.text, scoreLabel.format, currScore, maxScore);
-    deck_shuffle(&deck, &deck_xpos_f, &deck_ypos_f);
-}
-
-void processEvent()
-{
-    ALLEGRO_EVENT ev;
-    while (al_get_next_event(eventQueue, &ev))
-    {
-        if (ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
-        {
-            running = 0;
-            continue;
-        }
-
-        if (ev.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
-        {
-            mouseX = ev.mouse.x;
-            mouseY = ev.mouse.y;
-
-            if (!confPromptActive) {
-
-                if (rect_contains(WIDTH, 2 * boardMargin + 4 * (2 * cardsMargin + DHEI), 0, 0, mouseX, mouseY) && !timerActive) {
-                    bool res = deck_reveal_card(&deck, mouseX, mouseY, DWID, DHEI);
-                    if (res) {
-                        al_start_timer(timer);
-                        timerActive = 1;
-                    }
-                    continue;
-                }
-
-                if (rect_contains(resetButton.w, resetButton.h, resetButton.x, resetButton.y, mouseX, mouseY)) {
-                    //resetGame();
-                    confPromptActive = true;
-                    continue;
-                }
-
-                if (rect_contains(randomButton.w, randomButton.h, randomButton.x, randomButton.y, mouseX, mouseY)) {
-                    bool res = deck_reveal_random_card(&deck, DWID, DHEI);
-                    if (res) {
-                        al_start_timer(timer);
-                        timerActive = 1;
-                    }
-                    continue;
-                }
-
-                if (rect_contains(debugButton.w, debugButton.h, debugButton.x, debugButton.y, mouseX, mouseY)) {
-                    isDebug = !isDebug;
-                    debugButton.alt = isDebug;
-                    continue;
-                }
-            }
-            else {
-                if (rect_contains(confPrompt.yes.w, confPrompt.yes.h, confPrompt.yes.x, confPrompt.yes.y, mouseX, mouseY)) {
-                    resetGame();
-                    confPromptActive = false;
-                }
-                else if (rect_contains(confPrompt.no.w, confPrompt.no.h, confPrompt.no.x, confPrompt.no.y, mouseX, mouseY)) {
-                    confPromptActive = false;
-                }
-            }
-        }
-
-        if (ev.type == ALLEGRO_EVENT_KEY_DOWN)
-        {
-            switch (ev.keyboard.keycode)
-            {
-            case ALLEGRO_KEY_ESCAPE:
-                running = 0;
-                break;
-            case ALLEGRO_KEY_F5:
-                load_settings(false);
-                break;
-            case ALLEGRO_KEY_F3:
-                consoleActive = !consoleActive;
-                break;
-            }
-            continue;
-        }
-
-        if (ev.type == ALLEGRO_EVENT_TIMER) {
-            if (ev.timer.source == timer) {
-                int j = -1, k = -1;
-                int discarded = 0;
-                for (int i = 0; i < 40; i++) {
-                    if (deck.cards[i].state == CSTATE_PENDING_DISCARD) {
-                        deck.cards[i].state = CSTATE_DISCARDED;
-                        discarded = 1;
-                        if (j == -1) {
-                            j = i;
-                        }
-                        else {
-                            k = i;
-                        }
-                    }
-                    else if (deck.cards[i].state == CSTATE_PENDING_FLIPBACK) {
-                        deck.cards[i].state = CSTATE_FACEDOWN;
-                    }
-                }
-                if (j != -1) {
-                    deck_push_to_bottom(&deck, j);
-                }
-                al_stop_timer(timer);
-                timerActive = 0;
-                if (discarded) {
-                    currScore -= 1;
-                }
-                maxScore += 1;
-                sprintf(scoreLabel.text, scoreLabel.format, currScore, maxScore);
-            }
-            else if (ev.timer.source == fpsTimer) {
-                al_clear_to_color(bgColor);
-                draw();
-                al_flip_display();
-            }
-        }
-
-        if (ev.type == ALLEGRO_EVENT_KEY_CHAR)
-        {
-            if (consoleActive) {
-                if (ev.keyboard.unichar >= 32 && ev.keyboard.unichar <= 126) {
-                    console.cmd[console.cmdSize++] = ev.keyboard.unichar;
-                    console.cmd[console.cmdSize] = 0;
-                }
-                else if (ev.keyboard.keycode == ALLEGRO_KEY_BACKSPACE) {
-                    if (console.cmdSize > 0) {
-                        console.cmd[--console.cmdSize] = 0;
-                    }
-                }
-                else if (ev.keyboard.keycode == ALLEGRO_KEY_ENTER) {
-                    //console_history_add(&console, console.text);
-                    if (luaL_dostring(L, console.cmd) != LUA_OK) {
-                        sprintf(console.text, "Error: %s\n", lua_tostring(L, -1));
-                    }
-                    console.cmd[0] = 0;
-                    console.cmdSize = 0;
-                }
-            }
-        }
-    }
+    deck_shuffle(&deck, &deck_xpos_f, &deck_ypos_f, boardMargin, cardsMargin);
 }
 
 void draw()
 {
-    deck_draw(&deck);
+    ALLEGRO_MOUSE_STATE mouseState;
+    al_get_mouse_state(&mouseState);
+    deck_draw(&deck, mouseState.x, mouseState.y, confPromptActive, isDebug);
     label_draw(&scoreLabel);
     button_draw(&resetButton);
     button_draw(&randomButton);
@@ -275,91 +128,8 @@ void draw()
 }
 
 
-// [TODO] card remains selected if mouse is over selected_scaled region
-void deck_draw(Deck *d)
-{
-    ALLEGRO_MOUSE_STATE state;
-    al_get_mouse_state(&state);
-    for (int i = 0; i < 40; i++)
-    {
-        Card *ci = &(d->cards[i]);
-        float sx, sy;
-        float dw, dh;
-        float dx, dy;
-        card_value_img_region(ci->value, &sx, &sy);
-        switch (ci->state)
-        {
-        case CSTATE_FACEDOWN:
-            if (rect_contains(DWID, DHEI, ci->xpos, ci->ypos, state.x, state.y) && !confPromptActive) {
-                dw = DWID * SELECTED_SCALE;
-                dh = DHEI * SELECTED_SCALE;
-                dx = ci->xpos - (dw - DWID) / 2;
-                dy = ci->ypos - (dh - DHEI) / 2;
-            }
-            else {
-                dw = DWID;
-                dh = DHEI;
-                dx = ci->xpos;
-                dy = ci->ypos;
-            }
-            if (isDebug) {
-                al_draw_tinted_scaled_bitmap(cardsImg, alphaTint, sx, sy, SWID, SHEI, dx, dy, dw, dh, 0);
-            }
-            else {
-                al_draw_scaled_bitmap(cardsImg, 0, 0, SWID, SHEI, dx, dy, dw, dh, 0);
-            }
-
-            break;
-
-        case CSTATE_PENDING_DISCARD:
-        case CSTATE_PENDING_FLIPBACK:
-        case CSTATE_FACEUP:
-            //dw = DWID * SELECTED_SCALE;
-            //dh = DHEI * SELECTED_SCALE;
-            //dx = ci->xpos - (dw - DWID) / 2;
-            //dy = ci->ypos - (dh - DHEI) / 2;
-            dw = DWID;
-            dh = DHEI;
-            dx = ci->xpos;
-            dy = ci->ypos;
-            al_draw_scaled_bitmap(cardsImg, sx, sy, SWID, SHEI, dx, dy, dw, dh, 0);
-            break;
-        }
-    }
-}
 
 
-void card_value_img_region(int value, float *sx, float *sy)
-{
-    if (value < 10) {
-        *sx = value * SWID;
-        *sy = SHEI;
-    }
-    else if (value < 20) {
-        *sx = (value - 10) * SWID;
-        *sy = 2 * SHEI;
-    }
-    else {
-        *sx = 0;
-        *sy = 0;
-    }
-}
-
-
-
-
-
-
-
-int deck_xpos_f(int i)
-{
-    return boardMargin + cardsMargin + (2 * cardsMargin + DWID) * (i % 10);
-}
-
-int deck_ypos_f(int i)
-{
-    return boardMargin + cardsMargin + (2 * cardsMargin + DHEI) * (i / 10);
-}
 
 // TODO: there appears to be a small memory leak here
 void load_settings(bool first)
@@ -400,8 +170,8 @@ void load_settings(bool first)
     DWID = (WIDTH - 2 * boardMargin) / (float)10 - 2 * cardsMargin;
     DHEI = SHEI / (float)SWID * DWID;
     for (int i = 0; i < 40; i++) {
-        deck.cards[i].xpos = deck_xpos_f(i);
-        deck.cards[i].ypos = deck_ypos_f(i);
+        deck.cards[i].xpos = deck_xpos_f(&deck, i, boardMargin, cardsMargin);
+        deck.cards[i].ypos = deck_ypos_f(&deck, i, boardMargin, cardsMargin);
     }
 
     // CHECK: how do I know if this algorithm is correct? testing?
@@ -570,3 +340,8 @@ void load_settings(bool first)
 }
 
 
+int quit(lua_State *L)
+{
+    running = 0;
+    return 0;
+}
