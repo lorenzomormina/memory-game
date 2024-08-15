@@ -14,21 +14,24 @@
 
 // settings
 // --------
-extern cJSON *config;
-extern int debug;
 extern char *appname;
 extern char *winTitle;
 extern int WIDTH; // winSize[0]
 extern int HEIGHT; // winSize[1]
 extern ALLEGRO_COLOR bgColor;
+extern int FPS;
+
 extern int boardMargin;
 extern int cardsMargin;
+extern float TIMER_FLIPBACK;
+extern float SELECTED_SCALE;
+
+// ----
+
 extern Label scoreLabel;
 extern Button resetButton;
 extern Button randomButton;
 extern Button debugButton;
-extern float TIMER_FLIPBACK;
-extern float SELECTED_SCALE;
 extern ConfirmationPrompt confPrompt;
 extern Console console;
 
@@ -39,7 +42,7 @@ extern Console console;
 // then fonts has length i
 extern Font fonts[MAX_FONTS + 1];
 
-// ---
+
 // ---
 // original
 extern int SWID;

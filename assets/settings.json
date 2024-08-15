@@ -1,19 +1,5 @@
 {
-    "debug": true,
-    "appName": "memory",
-    "winTitle": "Memory",
     "frameRate": 60,
-    "winSize": [ 800, 600 ],
-    "bgColor": [ 150, 150, 150 ],
-    "boardMargin": 10,
-    "cardsMargin": 10,
-    "scoreLabel": {
-        "format": "Pairs left: %d. Attempts: %d.",
-        "fontSize": 14,
-        "color": [ 255, 255, 255 ],
-        "posX": 20,
-        "marginTop": 10
-    },
     "btnReset": {
         "text": "Reset",
         "fontSize": 14,

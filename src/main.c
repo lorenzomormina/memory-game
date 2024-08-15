@@ -13,13 +13,14 @@
 #include "utils.h"
 #include "globals.h"
 #include "event.h"
+#include "Lua.h"
 
 
 void init();
 void resetGame();
 void processEvent();
 void draw();
-void load_settings(bool first);
+void load_settings();
 
 int quit(lua_State *L);
 
@@ -40,6 +41,13 @@ void init()
     L = luaL_newstate();
     luaL_openlibs(L);
 
+    int result = luaL_dofile(L, "settings.lua");
+    if (result != LUA_OK) {
+        const char *errorMessage = lua_tostring(L, -1);
+        printf("Error: %s\n", errorMessage);
+        return;
+    }
+
     lua_register(L, "quit", quit);
     //
 
@@ -53,43 +61,47 @@ void init()
     al_init_font_addon();
     al_init_ttf_addon();
 
-    window = al_create_display(800, 600);
-    eventQueue = al_create_event_queue();
+    load_settings(true);
 
+    al_set_app_name(appname);
+    window = al_create_display(WIDTH, HEIGHT);
+    al_set_window_title(window, winTitle);
+
+    eventQueue = al_create_event_queue();
     al_register_event_source(eventQueue, al_get_mouse_event_source());
     al_register_event_source(eventQueue, al_get_display_event_source(window));
     al_register_event_source(eventQueue, al_get_keyboard_event_source());
 
-
-    //
     alphaTint = al_map_rgba(128, 128, 128, 128);
-    buttonColor = al_map_rgb(0, 0, 128);
-    buttonTextColor = al_map_rgb(255, 255, 255);
 
     cardsImg = al_load_bitmap("assets/cards.png");
     SWID = al_get_bitmap_width(cardsImg) / 11;
     SHEI = al_get_bitmap_height(cardsImg) / 3;
 
 
-    load_settings(true);
+    DWID = (WIDTH - 2 * boardMargin) / (float)10 - 2 * cardsMargin;
+    DHEI = SHEI / (float)SWID * DWID;
+    for (int i = 0; i < 40; i++) {
+        deck.cards[i].xpos = deck_xpos_f(&deck, i, boardMargin, cardsMargin);
+        deck.cards[i].ypos = deck_ypos_f(&deck, i, boardMargin, cardsMargin);
+    }
 
     deck_init(&deck, DWID, DHEI, SWID, SHEI, SELECTED_SCALE, alphaTint, cardsImg);
+    
 
     timer = al_create_timer(TIMER_FLIPBACK);
     al_register_event_source(eventQueue, al_get_timer_event_source(timer));
 
-    // Create and start the timer
     // WARN: this setting won't refresh on F5
-    int fps = cJSONUtils_GetPointer(config, "/frameRate")->valueint;
-    fpsTimer = al_create_timer(1.0 / fps);
+    fpsTimer = al_create_timer(1.0 / FPS);
     al_register_event_source(eventQueue, al_get_timer_event_source(fpsTimer));
     al_start_timer(fpsTimer);
 
     scoreLabel.y = 2 * boardMargin + 8 * cardsMargin + 4 * DHEI + scoreLabel.marginTop;
 
     resetButton.y = scoreLabel.y + al_get_font_line_height(scoreLabel.font) + resetButton.marginTop;
-    randomButton.y = resetButton.y + resetButton.h + randomButton.marginTop;
-    debugButton.y = randomButton.y + randomButton.h + debugButton.marginTop;
+    //randomButton.y = resetButton.y + resetButton.h + randomButton.marginTop;
+    //debugButton.y = randomButton.y + randomButton.h + debugButton.marginTop;
 
     deck_create(&deck);
 
@@ -112,8 +124,6 @@ void draw()
     deck_draw(&deck, mouseState.x, mouseState.y, confPromptActive, isDebug);
     label_draw(&scoreLabel);
     button_draw(&resetButton);
-    button_draw(&randomButton);
-    button_draw(&debugButton);
     if (confPromptActive) {
         int x = confPrompt.x;
         int y = confPrompt.y;
@@ -131,62 +141,43 @@ void draw()
 
 
 
-// TODO: there appears to be a small memory leak here
-void load_settings(bool first)
+// CHECK for memory leak
+void load_settings()
 {
-    // read entire file into memory
-    FILE *f = fopen("settings.json", "r");
-    fseek(f, 0, SEEK_END);
-    long fsize = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    char *settings = malloc(fsize + 1);
-    fread(settings, 1, fsize, f);
-    fclose(f);
-    settings[fsize] = 0;
-
-    if (config != NULL)
-        cJSON_Delete(config);
-    config = cJSON_Parse(settings);
-    free(settings);
-
-    WIDTH = cJSONUtils_GetPointer(config, "/winSize/0")->valueint;
-    HEIGHT = cJSONUtils_GetPointer(config, "/winSize/1")->valueint;
-    al_resize_display(window, WIDTH, HEIGHT);
-
-    char *appname = cJSONUtils_GetPointer(config, "/appName")->valuestring;
-    char *windowTitle = cJSONUtils_GetPointer(config, "/winTitle")->valuestring;
-    al_set_app_name(appname);
-    al_set_window_title(window, windowTitle);
+    appname = lua_getxs("appName");
+    winTitle = lua_getxs("winTitle");
+    WIDTH = lua_getxi_array_at("winSize", 0);
+    HEIGHT = lua_getxi_array_at("winSize", 1);
 
     int r, g, b;
-    r = cJSONUtils_GetPointer(config, "/bgColor/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/bgColor/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/bgColor/2")->valueint;
+    r = lua_getxi_array_at("bgColor", 0);
+    g = lua_getxi_array_at("bgColor", 1);
+    b = lua_getxi_array_at("bgColor", 2);
     bgColor = al_map_rgb(r, g, b);
 
-    boardMargin = cJSONUtils_GetPointer(config, "/boardMargin")->valueint;
-    cardsMargin = cJSONUtils_GetPointer(config, "/cardsMargin")->valueint;
+    FPS = lua_getxi("frameRate");
 
-    DWID = (WIDTH - 2 * boardMargin) / (float)10 - 2 * cardsMargin;
-    DHEI = SHEI / (float)SWID * DWID;
-    for (int i = 0; i < 40; i++) {
-        deck.cards[i].xpos = deck_xpos_f(&deck, i, boardMargin, cardsMargin);
-        deck.cards[i].ypos = deck_ypos_f(&deck, i, boardMargin, cardsMargin);
-    }
+    boardMargin = lua_getxi("boardMargin");
+    cardsMargin = lua_getxi("cardsMargin");
+    TIMER_FLIPBACK = lua_getxf("timerFlipback");
+    SELECTED_SCALE = lua_getxf("selectedScale");
+
+    // ---
+
 
     // CHECK: how do I know if this algorithm is correct? testing?
     // previous fonts are marked for clearing
     mark_fonts_for_clear(fonts);
 
-    scoreLabel.format = cJSONUtils_GetPointer(config, "/scoreLabel/format")->valuestring;
-    int scoreFontSize = cJSONUtils_GetPointer(config, "/scoreLabel/fontSize")->valueint;
-    r = cJSONUtils_GetPointer(config, "/scoreLabel/color/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/scoreLabel/color/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/scoreLabel/color/2")->valueint;
+    scoreLabel.format = (char *)lua_getxs("scoreLabel.format");
+    int scoreFontSize = lua_getxi("scoreLabel.fontSize");
+    r = lua_getxi_array_at("scoreLabel.color", 0);
+    g = lua_getxi_array_at("scoreLabel.color", 1);
+    b = lua_getxi_array_at("scoreLabel.color", 2);
     scoreLabel.color = al_map_rgb(r, g, b);
 
-    scoreLabel.x = cJSONUtils_GetPointer(config, "/scoreLabel/posX")->valueint;
-    scoreLabel.marginTop = cJSONUtils_GetPointer(config, "/scoreLabel/marginTop")->valueint;
+    scoreLabel.x = lua_getxi("scoreLabel.posX");
+    scoreLabel.marginTop = lua_getxi("scoreLabel.marginTop");
     scoreLabel.y = 2 * boardMargin + 8 * cardsMargin + 4 * DHEI + scoreLabel.marginTop;
 
     // add new font
@@ -195,70 +186,67 @@ void load_settings(bool first)
 
     // --
 
-    resetButton.x = cJSONUtils_GetPointer(config, "/btnReset/posX")->valueint;
-    resetButton.marginTop = cJSONUtils_GetPointer(config, "/btnReset/marginTop")->valueint;
+    resetButton.x = lua_getxi("btnReset.posX");
+    resetButton.marginTop = lua_getxi("btnReset.marginTop");
     resetButton.y = scoreLabel.y + al_get_font_line_height(scoreLabel.font) + resetButton.marginTop;
-    resetButton.w = cJSONUtils_GetPointer(config, "/btnReset/size/0")->valueint;
-    resetButton.h = cJSONUtils_GetPointer(config, "/btnReset/size/1")->valueint;
-    resetButton.fontSize = cJSONUtils_GetPointer(config, "/btnReset/fontSize")->valueint;
+    resetButton.w = lua_getxi_array_at("btnReset.size", 0);
+    resetButton.h = lua_getxi_array_at("btnReset.size", 1);
+    resetButton.fontSize = lua_getxi("btnReset.fontSize");
     resetButton.font = add_font(fonts, resetButton.fontSize);
-    r = cJSONUtils_GetPointer(config, "/btnReset/color/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/btnReset/color/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/btnReset/color/2")->valueint;
+    r = lua_getxi_array_at("btnReset.color", 0);
+    g = lua_getxi_array_at("btnReset.color", 1);
+    b = lua_getxi_array_at("btnReset.color", 2);
     resetButton.color = al_map_rgb(r, g, b);
-    r = cJSONUtils_GetPointer(config, "/btnReset/bgColor/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/btnReset/bgColor/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/btnReset/bgColor/2")->valueint;
+    r = lua_getxi_array_at("btnReset.bgColor", 0);
+    g = lua_getxi_array_at("btnReset.bgColor", 1);
+    b = lua_getxi_array_at("btnReset.bgColor", 2);
     resetButton.bgColor = al_map_rgb(r, g, b);
-    strcpy(resetButton.text, cJSONUtils_GetPointer(config, "/btnReset/text")->valuestring);
+    strcpy(resetButton.text, lua_getxs("btnReset.text"));
 
-    randomButton.x = cJSONUtils_GetPointer(config, "/btnRandom/posX")->valueint;
-    randomButton.marginTop = cJSONUtils_GetPointer(config, "/btnRandom/marginTop")->valueint;
-    randomButton.y = resetButton.y + resetButton.h + randomButton.marginTop;
-    randomButton.w = cJSONUtils_GetPointer(config, "/btnRandom/size/0")->valueint;
-    randomButton.h = cJSONUtils_GetPointer(config, "/btnRandom/size/1")->valueint;
-    randomButton.fontSize = cJSONUtils_GetPointer(config, "/btnRandom/fontSize")->valueint;
-    randomButton.font = add_font(fonts, randomButton.fontSize);
-    r = cJSONUtils_GetPointer(config, "/btnRandom/color/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/btnRandom/color/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/btnRandom/color/2")->valueint;
-    randomButton.color = al_map_rgb(r, g, b);
-    r = cJSONUtils_GetPointer(config, "/btnRandom/bgColor/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/btnRandom/bgColor/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/btnRandom/bgColor/2")->valueint;
-    randomButton.bgColor = al_map_rgb(r, g, b);
-    strcpy(randomButton.text, cJSONUtils_GetPointer(config, "/btnRandom/text")->valuestring);
+    //randomButton.x = cJSONUtils_GetPointer(config, "/btnRandom/posX")->valueint;
+    //randomButton.marginTop = cJSONUtils_GetPointer(config, "/btnRandom/marginTop")->valueint;
+    //randomButton.y = resetButton.y + resetButton.h + randomButton.marginTop;
+    //randomButton.w = cJSONUtils_GetPointer(config, "/btnRandom/size/0")->valueint;
+    //randomButton.h = cJSONUtils_GetPointer(config, "/btnRandom/size/1")->valueint;
+    //randomButton.fontSize = cJSONUtils_GetPointer(config, "/btnRandom/fontSize")->valueint;
+    //randomButton.font = add_font(fonts, randomButton.fontSize);
+    //r = cJSONUtils_GetPointer(config, "/btnRandom/color/0")->valueint;
+    //g = cJSONUtils_GetPointer(config, "/btnRandom/color/1")->valueint;
+    //b = cJSONUtils_GetPointer(config, "/btnRandom/color/2")->valueint;
+    //randomButton.color = al_map_rgb(r, g, b);
+    //r = cJSONUtils_GetPointer(config, "/btnRandom/bgColor/0")->valueint;
+    //g = cJSONUtils_GetPointer(config, "/btnRandom/bgColor/1")->valueint;
+    //b = cJSONUtils_GetPointer(config, "/btnRandom/bgColor/2")->valueint;
+    //randomButton.bgColor = al_map_rgb(r, g, b);
+    //strcpy(randomButton.text, cJSONUtils_GetPointer(config, "/btnRandom/text")->valuestring);
 
 
-    debugButton.x = cJSONUtils_GetPointer(config, "/btnDebug/posX")->valueint;
-    debugButton.marginTop = cJSONUtils_GetPointer(config, "/btnDebug/marginTop")->valueint;
-    debugButton.y = randomButton.y + randomButton.h + debugButton.marginTop;
-    debugButton.w = cJSONUtils_GetPointer(config, "/btnDebug/size/0")->valueint;
-    debugButton.h = cJSONUtils_GetPointer(config, "/btnDebug/size/1")->valueint;
-    debugButton.fontSize = cJSONUtils_GetPointer(config, "/btnDebug/fontSize")->valueint;
-    debugButton.font = add_font(fonts, debugButton.fontSize);
-    r = cJSONUtils_GetPointer(config, "/btnDebug/color/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/btnDebug/color/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/btnDebug/color/2")->valueint;
-    debugButton.color = al_map_rgb(r, g, b);
-    r = cJSONUtils_GetPointer(config, "/btnDebug/bgColor/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/btnDebug/bgColor/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/btnDebug/bgColor/2")->valueint;
-    debugButton.bgColor = al_map_rgb(r, g, b);
-    strcpy(debugButton.text, cJSONUtils_GetPointer(config, "/btnDebug/text")->valuestring);
-    strcpy(debugButton.textAlt, cJSONUtils_GetPointer(config, "/btnDebug/textAlt")->valuestring);
+    //debugButton.x = cJSONUtils_GetPointer(config, "/btnDebug/posX")->valueint;
+    //debugButton.marginTop = cJSONUtils_GetPointer(config, "/btnDebug/marginTop")->valueint;
+    //debugButton.y = randomButton.y + randomButton.h + debugButton.marginTop;
+    //debugButton.w = cJSONUtils_GetPointer(config, "/btnDebug/size/0")->valueint;
+    //debugButton.h = cJSONUtils_GetPointer(config, "/btnDebug/size/1")->valueint;
+    //debugButton.fontSize = cJSONUtils_GetPointer(config, "/btnDebug/fontSize")->valueint;
+    //debugButton.font = add_font(fonts, debugButton.fontSize);
+    //r = cJSONUtils_GetPointer(config, "/btnDebug/color/0")->valueint;
+    //g = cJSONUtils_GetPointer(config, "/btnDebug/color/1")->valueint;
+    //b = cJSONUtils_GetPointer(config, "/btnDebug/color/2")->valueint;
+    //debugButton.color = al_map_rgb(r, g, b);
+    //r = cJSONUtils_GetPointer(config, "/btnDebug/bgColor/0")->valueint;
+    //g = cJSONUtils_GetPointer(config, "/btnDebug/bgColor/1")->valueint;
+    //b = cJSONUtils_GetPointer(config, "/btnDebug/bgColor/2")->valueint;
+    //debugButton.bgColor = al_map_rgb(r, g, b);
+    //strcpy(debugButton.text, cJSONUtils_GetPointer(config, "/btnDebug/text")->valuestring);
+    //strcpy(debugButton.textAlt, cJSONUtils_GetPointer(config, "/btnDebug/textAlt")->valuestring);
 
-    //
+    ////
 
-    TIMER_FLIPBACK = cJSONUtils_GetPointer(config, "/timerFlipback")->valuedouble;
-    SELECTED_SCALE = cJSONUtils_GetPointer(config, "/selectedScale")->valuedouble;
-
-    //
+    ////
 
 
 
-    confPrompt.w = cJSONUtils_GetPointer(config, "/confPrompt/size/0")->valueint;
-    confPrompt.h = cJSONUtils_GetPointer(config, "/confPrompt/size/1")->valueint;
+    confPrompt.w = lua_getxi_array_at("confPrompt.size", 0);
+    confPrompt.h = lua_getxi_array_at("confPrompt.size", 1);
 
     // define x and y such that the prompt is centered
     confPrompt.x = (WIDTH - confPrompt.w) / 2;
@@ -267,73 +255,73 @@ void load_settings(bool first)
     int x = confPrompt.x;
     int y = confPrompt.y;
 
-    r = cJSONUtils_GetPointer(config, "/confPrompt/bgColor/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/confPrompt/bgColor/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/confPrompt/bgColor/2")->valueint;
+    r = lua_getxi_array_at("confPrompt.bgColor", 0);
+    g = lua_getxi_array_at("confPrompt.bgColor", 1);
+    b = lua_getxi_array_at("confPrompt.bgColor", 2);
     confPrompt.bgColor = al_map_rgb(r, g, b);
-    confPrompt.label.x = cJSONUtils_GetPointer(config, "/confPrompt/label/pos/0")->valueint + x;
-    confPrompt.label.y = cJSONUtils_GetPointer(config, "/confPrompt/label/pos/1")->valueint + y;
-    confPrompt.label.fontSize = cJSONUtils_GetPointer(config, "/confPrompt/label/fontSize")->valueint;
+    confPrompt.label.x = lua_getxi_array_at("confPrompt.label.pos", 0) + x;
+    confPrompt.label.y = lua_getxi_array_at("confPrompt.label.pos", 1) + y;
+    confPrompt.label.fontSize = lua_getxi("confPrompt.label.fontSize");
     confPrompt.label.font = add_font(fonts, confPrompt.label.fontSize);
-    r = cJSONUtils_GetPointer(config, "/confPrompt/label/color/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/confPrompt/label/color/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/confPrompt/label/color/2")->valueint;
+    r = lua_getxi_array_at("confPrompt.label.color", 0);
+    g = lua_getxi_array_at("confPrompt.label.color", 1);
+    b = lua_getxi_array_at("confPrompt.label.color", 2);
     confPrompt.label.color = al_map_rgb(r, g, b);
-    strcpy(confPrompt.label.text, cJSONUtils_GetPointer(config, "/confPrompt/label/text")->valuestring);
+    strcpy(confPrompt.label.text, lua_getxs("confPrompt.label.text"));
 
     // Button "Yes"
-    confPrompt.yes.x = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/pos/0")->valueint + x;
-    confPrompt.yes.y = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/pos/1")->valueint + y;
-    confPrompt.yes.fontSize = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/fontSize")->valueint;
+    confPrompt.yes.x = lua_getxi_array_at("confPrompt.btnYes.pos", 0) + x;
+    confPrompt.yes.y = lua_getxi_array_at("confPrompt.btnYes.pos", 1) + y;
+    confPrompt.yes.fontSize = lua_getxi("confPrompt.btnYes.fontSize");
     confPrompt.yes.font = add_font(fonts, confPrompt.yes.fontSize);
-    r = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/color/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/color/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/color/2")->valueint;
+    r = lua_getxi_array_at("confPrompt.btnYes.color", 0);
+    g = lua_getxi_array_at("confPrompt.btnYes.color", 1);
+    b = lua_getxi_array_at("confPrompt.btnYes.color", 2);
     confPrompt.yes.color = al_map_rgb(r, g, b);
-    r = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/bgColor/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/bgColor/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/bgColor/2")->valueint;
+    r = lua_getxi_array_at("confPrompt.btnYes.bgColor", 0);
+    g = lua_getxi_array_at("confPrompt.btnYes.bgColor", 1);
+    b = lua_getxi_array_at("confPrompt.btnYes.bgColor", 2);
     confPrompt.yes.bgColor = al_map_rgb(r, g, b);
-    confPrompt.yes.w = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/size/0")->valueint;
-    confPrompt.yes.h = cJSONUtils_GetPointer(config, "/confPrompt/btnYes/size/1")->valueint;
-    strcpy(confPrompt.yes.text, cJSONUtils_GetPointer(config, "/confPrompt/btnYes/text")->valuestring);
+    confPrompt.yes.w = lua_getxi_array_at("confPrompt.btnYes.size", 0);
+    confPrompt.yes.h = lua_getxi_array_at("confPrompt.btnYes.size", 1);
+    strcpy(confPrompt.yes.text, lua_getxs("confPrompt.btnYes.text"));
 
     // Button "No"
-    confPrompt.no.x = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/pos/0")->valueint + x;
-    confPrompt.no.y = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/pos/1")->valueint + y;
-    confPrompt.no.fontSize = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/fontSize")->valueint;
+    confPrompt.no.x = lua_getxi_array_at("confPrompt.btnNo.pos", 0) + x;
+    confPrompt.no.y = lua_getxi_array_at("confPrompt.btnNo.pos", 1) + y;
+    confPrompt.no.fontSize = lua_getxi("confPrompt.btnNo.fontSize");
     confPrompt.no.font = add_font(fonts, confPrompt.no.fontSize);
-    r = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/color/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/color/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/color/2")->valueint;
+    r = lua_getxi_array_at("confPrompt.btnNo.color", 0);
+    g = lua_getxi_array_at("confPrompt.btnNo.color", 1);
+    b = lua_getxi_array_at("confPrompt.btnNo.color", 2);
     confPrompt.no.color = al_map_rgb(r, g, b);
-    r = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/bgColor/0")->valueint;
-    g = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/bgColor/1")->valueint;
-    b = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/bgColor/2")->valueint;
+    r = lua_getxi_array_at("confPrompt.btnNo.bgColor", 0);
+    g = lua_getxi_array_at("confPrompt.btnNo.bgColor", 1);
+    b = lua_getxi_array_at("confPrompt.btnNo.bgColor", 2);
     confPrompt.no.bgColor = al_map_rgb(r, g, b);
-    confPrompt.no.w = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/size/0")->valueint;
-    confPrompt.no.h = cJSONUtils_GetPointer(config, "/confPrompt/btnNo/size/1")->valueint;
-    strcpy(confPrompt.no.text, cJSONUtils_GetPointer(config, "/confPrompt/btnNo/text")->valuestring);
+    confPrompt.no.w = lua_getxi_array_at("confPrompt.btnNo.size", 0);
+    confPrompt.no.h = lua_getxi_array_at("confPrompt.btnNo.size", 1);
+    strcpy(confPrompt.no.text, lua_getxs("confPrompt.btnNo.text"));
 
-    cJSON *consoleConfig = cJSONUtils_GetPointer(config, "/console");
-    console.x = cJSONUtils_GetPointer(consoleConfig, "/pos/0")->valueint;
-    console.y = cJSONUtils_GetPointer(consoleConfig, "/pos/1")->valueint;
-    console.w = cJSONUtils_GetPointer(consoleConfig, "/size/0")->valueint;
-    console.h = cJSONUtils_GetPointer(consoleConfig, "/size/1")->valueint;
-    console.fontSize = cJSONUtils_GetPointer(consoleConfig, "/fontSize")->valueint;
+    console.x = lua_getxi_array_at("console.pos", 0);
+    console.y = lua_getxi_array_at("console.pos", 1);
+    console.w = lua_getxi_array_at("console.size", 0);
+    console.h = lua_getxi_array_at("console.size", 1);
+    console.fontSize = lua_getxi("console.fontSize");
     console.font = add_font(fonts, console.fontSize);
-    r = cJSONUtils_GetPointer(consoleConfig, "/color/0")->valueint;
-    g = cJSONUtils_GetPointer(consoleConfig, "/color/1")->valueint;
-    b = cJSONUtils_GetPointer(consoleConfig, "/color/2")->valueint;
+    r = lua_getxi_array_at("console.color", 0);
+    g = lua_getxi_array_at("console.color", 1);
+    b = lua_getxi_array_at("console.color", 2);
     console.color = al_map_rgb(r, g, b);
-    r = cJSONUtils_GetPointer(consoleConfig, "/fontColor/0")->valueint;
-    g = cJSONUtils_GetPointer(consoleConfig, "/fontColor/1")->valueint;
-    b = cJSONUtils_GetPointer(consoleConfig, "/fontColor/2")->valueint;
+    r = lua_getxi_array_at("console.fontColor", 0);
+    g = lua_getxi_array_at("console.fontColor", 1);
+    b = lua_getxi_array_at("console.fontColor", 2);
     console.fontColor = al_map_rgb(r, g, b);
-    strcpy(console.prompt, cJSONUtils_GetPointer(consoleConfig, "/prompt")->valuestring);
+    strcpy(console.prompt, lua_getxs("console.prompt"));
     console.historyIndex = 0;
     console.historySize = 0;
     console.cmdSize = 0;
+
 
     // clear marked fonts
     clear_fonts(fonts);

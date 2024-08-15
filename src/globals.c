@@ -19,7 +19,7 @@ float TIMER_FLIPBACK;
 float SELECTED_SCALE;
 ConfirmationPrompt confPrompt;
 Console console;
-
+int FPS;
 // resources
 // ---------
 // font is "null-terminated":
