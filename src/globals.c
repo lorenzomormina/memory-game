@@ -40,7 +40,8 @@ float DHEI;
 
 ALLEGRO_DISPLAY *window;
 ALLEGRO_EVENT_QUEUE *eventQueue;
-ALLEGRO_TIMER *timer;
+ALLEGRO_TIMER *timer; 
+ALLEGRO_TIMER *fpsTimer;
 
 ALLEGRO_COLOR alphaTint;
 ALLEGRO_COLOR buttonColor;

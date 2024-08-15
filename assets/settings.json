@@ -2,6 +2,7 @@
     "debug": true,
     "appName": "memory",
     "winTitle": "Memory",
+    "frameRate": 60,
     "winSize": [ 800, 600 ],
     "bgColor": [ 150, 150, 150 ],
     "boardMargin": 10,

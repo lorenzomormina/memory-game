@@ -43,18 +43,6 @@ int main()
     while (running)
     {
         processEvent();
-
-        al_clear_to_color(bgColor);
-        draw();
-        al_flip_display();
-
-        // CHECK correct?
-        // TODO: see this https://github.com/liballeg/allegro_wiki/wiki/Allegro-Vivace-%E2%80%93-Basic-game-structure
-        double currTime = al_get_time();
-        if (currTime - lastTime < 1.0 / 60.0) {
-            al_rest(1.0 / 60.0 - (currTime - lastTime));
-        }
-        lastTime = currTime;
     }
 
     return 0;
@@ -101,6 +89,12 @@ void init()
 
     timer = al_create_timer(TIMER_FLIPBACK);
     al_register_event_source(eventQueue, al_get_timer_event_source(timer));
+
+    // Create and start the timer
+    int fps = cJSONUtils_GetPointer(config, "/frameRate")->valueint;
+    fpsTimer = al_create_timer(1.0 / fps);
+    al_register_event_source(eventQueue, al_get_timer_event_source(fpsTimer));
+    al_start_timer(fpsTimer);
 
     scoreLabel.y = 2 * boardMargin + 8 * cardsMargin + 4 * DHEI + scoreLabel.marginTop;
 
@@ -227,6 +221,11 @@ void processEvent()
                 }
                 maxScore += 1;
                 sprintf(scoreLabel.text, scoreLabel.format, currScore, maxScore);
+            }
+            else if (ev.timer.source == fpsTimer) {
+                al_clear_to_color(bgColor);
+                draw();
+                al_flip_display();
             }
         }
 

@@ -53,6 +53,7 @@ extern float DHEI;
 extern ALLEGRO_DISPLAY *window;
 extern ALLEGRO_EVENT_QUEUE *eventQueue;
 extern ALLEGRO_TIMER *timer;
+extern ALLEGRO_TIMER *fpsTimer;
 
 extern ALLEGRO_COLOR alphaTint;
 extern ALLEGRO_COLOR buttonColor;
