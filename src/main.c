@@ -23,6 +23,8 @@ void draw();
 void load_settings();
 
 int quit(lua_State *L);
+int peek_cards(lua_State *L);
+int random_card(lua_State *L);
 
 
 int main()
@@ -49,6 +51,8 @@ void init()
     }
 
     lua_register(L, "quit", quit);
+    lua_register(L, "peek_cards", peek_cards);
+    lua_register(L, "random_card", random_card);
     //
 
     srand(time(0));
@@ -100,8 +104,6 @@ void init()
     scoreLabel.y = 2 * boardMargin + 8 * cardsMargin + 4 * DHEI + scoreLabel.marginTop;
 
     resetButton.y = scoreLabel.y + al_get_font_line_height(scoreLabel.font) + resetButton.marginTop;
-    //randomButton.y = resetButton.y + resetButton.h + randomButton.marginTop;
-    //debugButton.y = randomButton.y + randomButton.h + debugButton.marginTop;
 
     deck_create(&deck);
 
@@ -203,47 +205,6 @@ void load_settings()
     resetButton.bgColor = al_map_rgb(r, g, b);
     strcpy(resetButton.text, lua_getxs("btnReset.text"));
 
-    //randomButton.x = cJSONUtils_GetPointer(config, "/btnRandom/posX")->valueint;
-    //randomButton.marginTop = cJSONUtils_GetPointer(config, "/btnRandom/marginTop")->valueint;
-    //randomButton.y = resetButton.y + resetButton.h + randomButton.marginTop;
-    //randomButton.w = cJSONUtils_GetPointer(config, "/btnRandom/size/0")->valueint;
-    //randomButton.h = cJSONUtils_GetPointer(config, "/btnRandom/size/1")->valueint;
-    //randomButton.fontSize = cJSONUtils_GetPointer(config, "/btnRandom/fontSize")->valueint;
-    //randomButton.font = add_font(fonts, randomButton.fontSize);
-    //r = cJSONUtils_GetPointer(config, "/btnRandom/color/0")->valueint;
-    //g = cJSONUtils_GetPointer(config, "/btnRandom/color/1")->valueint;
-    //b = cJSONUtils_GetPointer(config, "/btnRandom/color/2")->valueint;
-    //randomButton.color = al_map_rgb(r, g, b);
-    //r = cJSONUtils_GetPointer(config, "/btnRandom/bgColor/0")->valueint;
-    //g = cJSONUtils_GetPointer(config, "/btnRandom/bgColor/1")->valueint;
-    //b = cJSONUtils_GetPointer(config, "/btnRandom/bgColor/2")->valueint;
-    //randomButton.bgColor = al_map_rgb(r, g, b);
-    //strcpy(randomButton.text, cJSONUtils_GetPointer(config, "/btnRandom/text")->valuestring);
-
-
-    //debugButton.x = cJSONUtils_GetPointer(config, "/btnDebug/posX")->valueint;
-    //debugButton.marginTop = cJSONUtils_GetPointer(config, "/btnDebug/marginTop")->valueint;
-    //debugButton.y = randomButton.y + randomButton.h + debugButton.marginTop;
-    //debugButton.w = cJSONUtils_GetPointer(config, "/btnDebug/size/0")->valueint;
-    //debugButton.h = cJSONUtils_GetPointer(config, "/btnDebug/size/1")->valueint;
-    //debugButton.fontSize = cJSONUtils_GetPointer(config, "/btnDebug/fontSize")->valueint;
-    //debugButton.font = add_font(fonts, debugButton.fontSize);
-    //r = cJSONUtils_GetPointer(config, "/btnDebug/color/0")->valueint;
-    //g = cJSONUtils_GetPointer(config, "/btnDebug/color/1")->valueint;
-    //b = cJSONUtils_GetPointer(config, "/btnDebug/color/2")->valueint;
-    //debugButton.color = al_map_rgb(r, g, b);
-    //r = cJSONUtils_GetPointer(config, "/btnDebug/bgColor/0")->valueint;
-    //g = cJSONUtils_GetPointer(config, "/btnDebug/bgColor/1")->valueint;
-    //b = cJSONUtils_GetPointer(config, "/btnDebug/bgColor/2")->valueint;
-    //debugButton.bgColor = al_map_rgb(r, g, b);
-    //strcpy(debugButton.text, cJSONUtils_GetPointer(config, "/btnDebug/text")->valuestring);
-    //strcpy(debugButton.textAlt, cJSONUtils_GetPointer(config, "/btnDebug/textAlt")->valuestring);
-
-    ////
-
-    ////
-
-
 
     confPrompt.w = lua_getxi_array_at("confPrompt.size", 0);
     confPrompt.h = lua_getxi_array_at("confPrompt.size", 1);
@@ -331,5 +292,34 @@ void load_settings()
 int quit(lua_State *L)
 {
     running = 0;
+    return 0;
+}
+
+int peek_cards(lua_State *L)
+{
+    // retrieve first parameter, which is a boolean
+    int n = lua_gettop(L);
+    if (n != 1) {
+        return luaL_error(L, "peek_cards: wrong number of arguments");
+    }
+    if (!lua_isboolean(L, 1)) {
+        return luaL_error(L, "peek_cards: wrong argument type");
+    }
+    isDebug = lua_toboolean(L, 1);
+
+    return 0;
+}
+
+int random_card(lua_State *L)
+{
+    int n = lua_gettop(L);
+    if (n != 0) {
+        return luaL_error(L, "random_card: wrong number of arguments");
+    }
+    bool res = deck_reveal_random_card(&deck, DWID, DHEI);
+    if (res) {
+        al_start_timer(timer);
+        timerActive = 1;
+    }
     return 0;
 }
