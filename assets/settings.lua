@@ -21,55 +21,35 @@ btnReset = {
     text = "Reset",
     fontSize = 14,
     color = {255, 255, 255},
-    bgColor = {0, 0, 0},
+    bgColor = {64, 64, 64},
     size = {100, 30},
     marginTop = 10,
     posX = 20
 }
-
-
-
-btnRandom = {
-    text = "Random",
-    fontSize = 14,
-    color = {255, 255, 255},
-    bgColor = {0, 0, 0},
-    size = {100, 30},
-    marginTop = 10,
-    posX = 20
-}
-
-btnDebug = {
-    textAlt = "Debug [ON]",
-    text = "Debug [OFF]",
-    fontSize = 14,
-    color = {255, 255, 255}
-}
-
 
 confPrompt = {
-    size = {300, 200},
-    bgColor = {173, 216, 230},
+    size = {400, 150},
+    bgColor = {128, 128, 128},
     label = {
         text = "Are you sure you want to reset the game?",
         pos = {20, 20},
         fontSize = 14,
-        color = {0, 0, 0}
+        color = {255, 255, 255}
     },
     btnYes = {
         text = "Yes",
-        pos = {20, 100},
+        pos = {20, 70},
         fontSize = 14,
         color = {255, 255, 255},
-        bgColor = {0, 0, 0},
+        bgColor = {64, 64, 64},
         size = {100, 30}
     },
     btnNo = {
         text = "No",
-        pos = {180, 100},
+        pos = {150, 70},
         fontSize = 14,
         color = {255, 255, 255},
-        bgColor = {0, 0, 0},
+        bgColor = {64, 64, 64},
         size = {100, 30}
     }
 }

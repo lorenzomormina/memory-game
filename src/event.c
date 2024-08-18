@@ -29,25 +29,9 @@ void processEvent()
                 }
 
                 if (rect_contains(resetButton.w, resetButton.h, resetButton.x, resetButton.y, mouseX, mouseY)) {
-                    //resetGame();
                     confPromptActive = true;
                     continue;
                 }
-
-                //if (rect_contains(randomButton.w, randomButton.h, randomButton.x, randomButton.y, mouseX, mouseY)) {
-                //    bool res = deck_reveal_random_card(&deck, DWID, DHEI);
-                //    if (res) {
-                //        al_start_timer(timer);
-                //        timerActive = 1;
-                //    }
-                //    continue;
-                //}
-
-                //if (rect_contains(debugButton.w, debugButton.h, debugButton.x, debugButton.y, mouseX, mouseY)) {
-                //    isDebug = !isDebug;
-                //    debugButton.alt = isDebug;
-                //    continue;
-                //}
             }
             else {
                 if (rect_contains(confPrompt.yes.w, confPrompt.yes.h, confPrompt.yes.x, confPrompt.yes.y, mouseX, mouseY)) {
@@ -68,7 +52,7 @@ void processEvent()
                 running = 0;
                 break;
             case ALLEGRO_KEY_F5:
-                load_settings(false);
+                load_settings();
                 break;
             case ALLEGRO_KEY_F3:
                 consoleActive = !consoleActive;

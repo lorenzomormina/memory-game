@@ -43,12 +43,7 @@ void init()
     L = luaL_newstate();
     luaL_openlibs(L);
 
-    int result = luaL_dofile(L, "settings.lua");
-    if (result != LUA_OK) {
-        const char *errorMessage = lua_tostring(L, -1);
-        printf("Error: %s\n", errorMessage);
-        return;
-    }
+
 
     lua_register(L, "quit", quit);
     lua_register(L, "peek_cards", peek_cards);
@@ -146,6 +141,13 @@ void draw()
 // CHECK for memory leak
 void load_settings()
 {
+    int result = luaL_dofile(L, "settings.lua");
+    if (result != LUA_OK) {
+        const char *errorMessage = lua_tostring(L, -1);
+        printf("Error: %s\n", errorMessage);
+        return;
+    }
+
     appname = lua_getxs("appName");
     winTitle = lua_getxs("winTitle");
     WIDTH = lua_getxi_array_at("winSize", 0);
