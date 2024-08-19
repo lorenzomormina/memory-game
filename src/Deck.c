@@ -96,8 +96,12 @@ bool deck_reveal_card(Deck *d, int x, int y, int w, int h)
 
 bool deck_reveal_random_card(Deck *d, int w, int h)
 {
-    if (d->lastDown >= 0) {
-        int i = rand() % (d->lastDown + 1);
+    if (d->lastDown >= 20) {
+        int i;
+        do {
+            i = rand() % (d->lastDown + 1);
+        }while(d->cards[i].state != CSTATE_FACEDOWN);
+            
         return deck_reveal_card(d, d->cards[i].xpos + 1, d->cards[i].ypos + 1, w, h);
     }
 }
