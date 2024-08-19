@@ -44,6 +44,7 @@ void init()
     lua_register(L, "quit", quit);
     lua_register(L, "peek_cards", peek_cards);
     lua_register(L, "random_card", random_card);
+    lua_register(L, "random_cards", random_cards);
     lua_register(L, "refresh_ui", refresh_ui);
     //
 

@@ -194,3 +194,25 @@ int refresh_ui(lua_State *L)
     load_settings();
     return 0;
 }
+
+int random_cards(lua_State *L)
+{
+    int n = lua_gettop(L);
+    // retrieve first parameter, which is an integer
+    if (n != 1) {
+        return luaL_error(L, "random_cards: wrong number of arguments");
+    }
+    if (!lua_isinteger(L, 1)) {
+        return luaL_error(L, "random_cards: wrong argument type");
+    }
+    int num = lua_tointeger(L, 1);
+    for (int i = 0; i < num; i++) {
+        bool res = deck_reveal_random_card(&deck, DWID, DHEI);
+        if (res) {
+            al_start_timer(timer);
+            timerActive = 1;
+        }
+    }
+
+    return 0;
+}
