@@ -280,7 +280,7 @@ void load_settings()
     strcpy(console.prompt, lua_getxs("console.prompt"));
     console.historyIndex = 0;
     console.historySize = 0;
-    console.cmdSize = 0;
+    console.cursorIndex = 0;
 
 
     // clear marked fonts

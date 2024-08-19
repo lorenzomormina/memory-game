@@ -105,21 +105,42 @@ void processEvent()
                     if (ev.keyboard.unichar == 96) {
                         continue;
                     }
-                    console.cmd[console.cmdSize++] = ev.keyboard.unichar;
-                    console.cmd[console.cmdSize] = 0;
+                    console_add_char(&console, ev.keyboard.unichar);
                 }
                 else if (ev.keyboard.keycode == ALLEGRO_KEY_BACKSPACE) {
-                    if (console.cmdSize > 0) {
-                        console.cmd[--console.cmdSize] = 0;
+                    // ?
+                    if (console_cmd_size(&console) > 0) {
+                        console_remove_char(&console);
                     }
                 }
                 else if (ev.keyboard.keycode == ALLEGRO_KEY_ENTER) {
-                    //console_history_add(&console, console.text);
-                    if (luaL_dostring(L, console.cmd) != LUA_OK) {
-                        sprintf(console.text, "Error: %s\n", lua_tostring(L, -1));
+                    char *cmd = console_get_cmd(&console);
+                    // if cmd is empty, do nothing
+                    if (strlen(cmd) > 0) {
+                        if (luaL_dostring(L, cmd) != LUA_OK) {
+                            sprintf(console.text, "Error: %s\n", lua_tostring(L, -1));
+                        }
+                        console_history_add(&console);
+                        console.cmd[0] = '\0';
                     }
-                    console.cmd[0] = 0;
-                    console.cmdSize = 0;
+                }
+                else if (ev.keyboard.keycode == ALLEGRO_KEY_UP) {
+                    console_move_index_up(&console);
+                }
+                else if (ev.keyboard.keycode == ALLEGRO_KEY_DOWN) {
+                    console_move_index_down(&console);
+                }
+
+                else if (ev.keyboard.keycode == ALLEGRO_KEY_LEFT) {
+                    console_move_cursor_left(&console);
+                }
+                else if (ev.keyboard.keycode == ALLEGRO_KEY_RIGHT) {
+                    console_move_cursor_right(&console);
+                }
+                else if (ev.keyboard.keycode == ALLEGRO_KEY_DELETE) {
+                    if (console_cmd_size(&console) > 0) {
+                        console_remove_char_right(&console);
+                    }
                 }
             }
         }
