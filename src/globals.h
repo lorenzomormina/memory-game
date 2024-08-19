@@ -76,3 +76,10 @@ extern bool consoleActive;
 // ---
 
 extern lua_State *L;
+
+//
+
+extern ALLEGRO_TIMER *randomCardsTimer;
+extern float randomCardsTimerInterval;
+extern int numRandomCards;
+extern bool randCardsEval;

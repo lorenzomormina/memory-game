@@ -9,6 +9,8 @@ cardsMargin = 10
 timerFlipback = 0.5
 selectedScale = 1.2
 
+randomCardsTimerInterval = 0.1
+
 scoreLabel = {
     format = "Pairs left: %d. Attempts: %d.",
     fontSize = 14,

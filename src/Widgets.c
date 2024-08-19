@@ -81,7 +81,7 @@ void console_remove_char(Console *c) {
     if (c->historyIndex == c->historySize) {
         if (strlen(c->cmd) > 0) {
             // from cursorIndex to end, shift left
-            for (int i = c->cursorIndex - 1; i < strlen(c->cmd); i++) {
+            for (int i = c->cursorIndex - 1; i <= strlen(c->cmd); i++) {
                 c->cmd[i] = c->cmd[i + 1];
             }
             // WARN! null termination?
@@ -93,7 +93,7 @@ void console_remove_char(Console *c) {
         strcpy(c->cmd, c->history[c->historyIndex]);
         if (strlen(c->cmd) > 0) {
             // from cursorIndex to end, shift left
-            for (int i = c->cursorIndex - 1; i < strlen(c->cmd); i++) {
+            for (int i = c->cursorIndex - 1; i <= strlen(c->cmd); i++) {
                 c->cmd[i] = c->cmd[i + 1];
             }
             // WARN! null termination?
@@ -104,6 +104,8 @@ void console_remove_char(Console *c) {
     }
 }
 
+// TODO: don't put consecutive equal elements in history
+// TODO: make sure any element exists only once in history
 void console_history_add(Console *c) {
     if (c->historySize < HISTORY_SIZE) {
         strcpy(c->history[c->historySize], c->cmd);
@@ -117,6 +119,12 @@ void console_history_add(Console *c) {
         strcpy(c->history[HISTORY_SIZE - 1], c->cmd);
     }
     c->cursorIndex = 0;
+
+    // print history
+    //for (int i = 0; i < c->historySize; i++) {
+    //    printf("%s\n", c->history[i]);
+    //}
+    //puts("");
 }
 
 char *console_get_cmd(Console *c) {

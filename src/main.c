@@ -46,6 +46,7 @@ void init()
     lua_register(L, "random_card", random_card);
     lua_register(L, "random_cards", random_cards);
     lua_register(L, "refresh_ui", refresh_ui);
+    lua_register(L, "clear_history", clear_history);
     //
 
     srand(time(0));
@@ -88,6 +89,9 @@ void init()
 
     timer = al_create_timer(TIMER_FLIPBACK);
     al_register_event_source(eventQueue, al_get_timer_event_source(timer));
+
+    randomCardsTimer = al_create_timer(randomCardsTimerInterval);
+    al_register_event_source(eventQueue, al_get_timer_event_source(randomCardsTimer));
 
     // WARN: this setting won't refresh on F5
     fpsTimer = al_create_timer(1.0 / FPS);
@@ -286,6 +290,11 @@ void load_settings()
 
     // clear marked fonts
     clear_fonts(fonts);
+
+    //
+    randomCardsTimerInterval = lua_getxf("randomCardsTimerInterval");
+    numRandomCards = 0;
+    randCardsEval = 0;
 }
 
 

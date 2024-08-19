@@ -63,38 +63,30 @@ void processEvent()
 
         if (ev.type == ALLEGRO_EVENT_TIMER) {
             if (ev.timer.source == timer) {
-                int j = -1, k = -1;
-                int discarded = 0;
-                for (int i = 0; i < 40; i++) {
-                    if (deck.cards[i].state == CSTATE_PENDING_DISCARD) {
-                        deck.cards[i].state = CSTATE_DISCARDED;
-                        discarded = 1;
-                        if (j == -1) {
-                            j = i;
-                        }
-                        else {
-                            k = i;
-                        }
-                    }
-                    else if (deck.cards[i].state == CSTATE_PENDING_FLIPBACK) {
-                        deck.cards[i].state = CSTATE_FACEDOWN;
-                    }
-                }
-                if (j != -1) {
-                    deck_push_to_bottom(&deck, j);
-                }
-                al_stop_timer(timer);
-                timerActive = 0;
-                if (discarded) {
-                    currScore -= 1;
-                }
-                maxScore += 1;
-                sprintf(scoreLabel.text, scoreLabel.format, currScore, maxScore);
+                eval_cards();
             }
             else if (ev.timer.source == fpsTimer) {
                 al_clear_to_color(bgColor);
                 draw();
                 al_flip_display();
+            }
+            else if (ev.timer.source == randomCardsTimer) {
+                if (numRandomCards > 0 || randCardsEval) {
+
+                    if (randCardsEval) {
+                        eval_cards();
+                        randCardsEval = false;
+                        return;
+                    }
+                    bool res = deck_reveal_random_card(&deck, DWID, DHEI);
+                    numRandomCards--;
+                    if (res) {
+                        randCardsEval = true;
+                    }
+                }
+                else {
+                    al_stop_timer(randomCardsTimer);
+                }
             }
         }
 
@@ -205,14 +197,50 @@ int random_cards(lua_State *L)
     if (!lua_isinteger(L, 1)) {
         return luaL_error(L, "random_cards: wrong argument type");
     }
-    int num = lua_tointeger(L, 1);
-    for (int i = 0; i < num; i++) {
-        bool res = deck_reveal_random_card(&deck, DWID, DHEI);
-        if (res) {
-            al_start_timer(timer);
-            timerActive = 1;
-        }
-    }
+    numRandomCards = lua_tointeger(L, 1);
+    al_start_timer(randomCardsTimer);
 
     return 0;
+}
+
+int clear_history(lua_State *L)
+{
+    //int n = lua_gettop(L);
+    //if (n != 0) {
+    //    return luaL_error(L, "clear_history: wrong number of arguments");
+    //}
+    //console.historySize = 0;
+    //console.historyIndex = 0;
+    //return 0;
+}
+
+void eval_cards()
+{
+    int j = -1, k = -1;
+    int discarded = 0;
+    for (int i = 0; i < 40; i++) {
+        if (deck.cards[i].state == CSTATE_PENDING_DISCARD) {
+            deck.cards[i].state = CSTATE_DISCARDED;
+            discarded = 1;
+            if (j == -1) {
+                j = i;
+            }
+            else {
+                k = i;
+            }
+        }
+        else if (deck.cards[i].state == CSTATE_PENDING_FLIPBACK) {
+            deck.cards[i].state = CSTATE_FACEDOWN;
+        }
+    }
+    if (j != -1) {
+        deck_push_to_bottom(&deck, j);
+    }
+    al_stop_timer(timer);
+    timerActive = 0;
+    if (discarded) {
+        currScore -= 1;
+    }
+    maxScore += 1;
+    sprintf(scoreLabel.text, scoreLabel.format, currScore, maxScore);
 }

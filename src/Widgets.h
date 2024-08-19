@@ -52,7 +52,7 @@ typedef struct Console {
     char prompt[PROMPT_SIZE]; // eg: "> "
     char cmd[CMD_SIZE]; // "hello"
     char text[TEXT_SIZE]; // "this is the output of the function/command hello()"
-    char history[CMD_SIZE][HISTORY_SIZE];
+    char history[HISTORY_SIZE][CMD_SIZE];
     int historyIndex;
     int historySize;
     int cursorIndex;

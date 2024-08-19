@@ -61,3 +61,10 @@ bool consoleActive = false;
 // ---
 
 lua_State *L;
+
+//
+
+ALLEGRO_TIMER *randomCardsTimer;
+float randomCardsTimerInterval;
+int numRandomCards;
+bool randCardsEval;
