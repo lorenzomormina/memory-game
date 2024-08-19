@@ -132,6 +132,7 @@ char *console_get_cmd(Console *c) {
 }
 
 
+// TODO, BUG: up + enter doesn't reset historyIndex to historySize
 void console_move_index_up(Console *c)
 {
     if (c->historyIndex > 0) {

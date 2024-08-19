@@ -52,7 +52,7 @@ void processEvent()
                 running = 0;
                 break;
             case ALLEGRO_KEY_F5:
-                load_settings();
+                load_settings(false);
                 break;
             case ALLEGRO_KEY_TILDE:
                 consoleActive = !consoleActive;
@@ -183,7 +183,7 @@ int refresh_ui(lua_State *L)
     if (n != 0) {
         return luaL_error(L, "refresh_ui: wrong number of arguments");
     }
-    load_settings();
+    load_settings(false);
     return 0;
 }
 

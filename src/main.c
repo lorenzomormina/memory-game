@@ -20,7 +20,7 @@ void init();
 void resetGame();
 void processEvent();
 void draw();
-void load_settings();
+void load_settings(bool first);
 
 
 int main()
@@ -70,6 +70,17 @@ void init()
     al_register_event_source(eventQueue, al_get_display_event_source(window));
     al_register_event_source(eventQueue, al_get_keyboard_event_source());
 
+    timer = al_create_timer(TIMER_FLIPBACK);
+    al_register_event_source(eventQueue, al_get_timer_event_source(timer));
+
+    randomCardsTimer = al_create_timer(randomCardsTimerInterval);
+    al_register_event_source(eventQueue, al_get_timer_event_source(randomCardsTimer));
+
+    // WARN: this setting won't refresh on F5
+    fpsTimer = al_create_timer(1.0 / FPS);
+    al_register_event_source(eventQueue, al_get_timer_event_source(fpsTimer));
+    al_start_timer(fpsTimer);
+
     alphaTint = al_map_rgba(128, 128, 128, 128);
 
     cardsImg = al_load_bitmap("assets/cards.png");
@@ -87,16 +98,7 @@ void init()
     deck_init(&deck, DWID, DHEI, SWID, SHEI, SELECTED_SCALE, alphaTint, cardsImg);
     
 
-    timer = al_create_timer(TIMER_FLIPBACK);
-    al_register_event_source(eventQueue, al_get_timer_event_source(timer));
-
-    randomCardsTimer = al_create_timer(randomCardsTimerInterval);
-    al_register_event_source(eventQueue, al_get_timer_event_source(randomCardsTimer));
-
-    // WARN: this setting won't refresh on F5
-    fpsTimer = al_create_timer(1.0 / FPS);
-    al_register_event_source(eventQueue, al_get_timer_event_source(fpsTimer));
-    al_start_timer(fpsTimer);
+    
 
     scoreLabel.y = 2 * boardMargin + 8 * cardsMargin + 4 * DHEI + scoreLabel.marginTop;
 
@@ -141,7 +143,7 @@ void draw()
 
 
 // CHECK for memory leak
-void load_settings()
+void load_settings(bool first)
 {
     int result = luaL_dofile(L, "settings.lua");
     if (result != LUA_OK) {
@@ -155,6 +157,12 @@ void load_settings()
     WIDTH = lua_getxi_array_at("winSize", 0);
     HEIGHT = lua_getxi_array_at("winSize", 1);
 
+    if (!first) {
+        al_set_app_name(appname);
+        al_set_window_title(window, winTitle);
+        al_resize_display(window, WIDTH, HEIGHT);
+    }
+
     int r, g, b;
     r = lua_getxi_array_at("bgColor", 0);
     g = lua_getxi_array_at("bgColor", 1);
@@ -162,11 +170,18 @@ void load_settings()
     bgColor = al_map_rgb(r, g, b);
 
     FPS = lua_getxi("frameRate");
+    if(!first) {
+        al_set_timer_speed(fpsTimer, 1.0 / FPS);
+    }
 
     boardMargin = lua_getxi("boardMargin");
     cardsMargin = lua_getxi("cardsMargin");
     TIMER_FLIPBACK = lua_getxf("timerFlipback");
     SELECTED_SCALE = lua_getxf("selectedScale");
+
+    if(!first) {
+        al_set_timer_speed(timer, TIMER_FLIPBACK);
+    }
 
     // ---
 
@@ -293,6 +308,9 @@ void load_settings()
 
     //
     randomCardsTimerInterval = lua_getxf("randomCardsTimerInterval");
+    if(!first) {
+        al_set_timer_speed(randomCardsTimer, randomCardsTimerInterval);
+    }
     numRandomCards = 0;
     randCardsEval = 0;
 }
