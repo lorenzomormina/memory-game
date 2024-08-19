@@ -55,8 +55,8 @@ confPrompt = {
 }
 
 console = {
-    pos = {20, 150},
-    size = {260, 300},
+    pos = {20, 495},
+    size = {760, 90},
     fontSize = 14,
     color = {0, 0, 0},
     fontColor = {255, 255, 255},

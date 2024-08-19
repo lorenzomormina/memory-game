@@ -54,7 +54,7 @@ void processEvent()
             case ALLEGRO_KEY_F5:
                 load_settings();
                 break;
-            case ALLEGRO_KEY_F3:
+            case ALLEGRO_KEY_TILDE:
                 consoleActive = !consoleActive;
                 break;
             }
@@ -102,6 +102,9 @@ void processEvent()
         {
             if (consoleActive) {
                 if (ev.keyboard.unichar >= 32 && ev.keyboard.unichar <= 126) {
+                    if (ev.keyboard.unichar == 96) {
+                        continue;
+                    }
                     console.cmd[console.cmdSize++] = ev.keyboard.unichar;
                     console.cmd[console.cmdSize] = 0;
                 }

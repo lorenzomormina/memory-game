@@ -25,6 +25,7 @@ void load_settings();
 int quit(lua_State *L);
 int peek_cards(lua_State *L);
 int random_card(lua_State *L);
+int refresh_ui(lua_State *L);
 
 
 int main()
@@ -48,6 +49,7 @@ void init()
     lua_register(L, "quit", quit);
     lua_register(L, "peek_cards", peek_cards);
     lua_register(L, "random_card", random_card);
+    lua_register(L, "refresh_ui", refresh_ui);
     //
 
     srand(time(0));
@@ -323,5 +325,16 @@ int random_card(lua_State *L)
         al_start_timer(timer);
         timerActive = 1;
     }
+    return 0;
+}
+
+
+int refresh_ui(lua_State *L)
+{
+    int n = lua_gettop(L);
+    if (n != 0) {
+        return luaL_error(L, "refresh_ui: wrong number of arguments");
+    }
+    load_settings();
     return 0;
 }
