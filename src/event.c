@@ -125,3 +125,51 @@ void processEvent()
         }
     }
 }
+
+
+
+int quit(lua_State *L)
+{
+    running = 0;
+    return 0;
+}
+
+int peek_cards(lua_State *L)
+{
+    // retrieve first parameter, which is a boolean
+    int n = lua_gettop(L);
+    if (n != 1) {
+        return luaL_error(L, "peek_cards: wrong number of arguments");
+    }
+    if (!lua_isboolean(L, 1)) {
+        return luaL_error(L, "peek_cards: wrong argument type");
+    }
+    isDebug = lua_toboolean(L, 1);
+
+    return 0;
+}
+
+int random_card(lua_State *L)
+{
+    int n = lua_gettop(L);
+    if (n != 0) {
+        return luaL_error(L, "random_card: wrong number of arguments");
+    }
+    bool res = deck_reveal_random_card(&deck, DWID, DHEI);
+    if (res) {
+        al_start_timer(timer);
+        timerActive = 1;
+    }
+    return 0;
+}
+
+
+int refresh_ui(lua_State *L)
+{
+    int n = lua_gettop(L);
+    if (n != 0) {
+        return luaL_error(L, "refresh_ui: wrong number of arguments");
+    }
+    load_settings();
+    return 0;
+}
