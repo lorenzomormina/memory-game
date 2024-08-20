@@ -9,7 +9,7 @@ cardsMargin = 10
 timerFlipback = 0.5
 selectedScale = 1.2
 
-randomCardsTimerInterval = 0.1
+randomCardsTimerInterval = 0.01
 
 scoreLabel = {
     format = "Pairs left: %d. Attempts: %d.",
@@ -30,7 +30,7 @@ btnReset = {
 }
 
 confPrompt = {
-    size = {400, 150},
+    size = {360, 120},
     bgColor = {128, 128, 128},
     label = {
         text = "Are you sure you want to reset the game?",
@@ -40,7 +40,7 @@ confPrompt = {
     },
     btnYes = {
         text = "Yes",
-        pos = {20, 70},
+        pos = {120, 70},
         fontSize = 14,
         color = {255, 255, 255},
         bgColor = {64, 64, 64},
@@ -48,7 +48,7 @@ confPrompt = {
     },
     btnNo = {
         text = "No",
-        pos = {150, 70},
+        pos = {240, 70},
         fontSize = 14,
         color = {255, 255, 255},
         bgColor = {64, 64, 64},
