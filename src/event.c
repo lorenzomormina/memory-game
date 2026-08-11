@@ -73,6 +73,12 @@ void processEvent()
             else if (ev.timer.source == randomCardsTimer) {
                 if (numRandomCards > 0 || randCardsEval) {
 
+                    // if last card is discarded, stop timer
+                    if (deck.lastDown == 19) {
+                        al_stop_timer(randomCardsTimer);
+                        return;
+                    }
+
                     if (randCardsEval) {
                         eval_cards();
                         randCardsEval = false;
@@ -86,6 +92,24 @@ void processEvent()
                 }
                 else {
                     al_stop_timer(randomCardsTimer);
+                }
+            }
+            else if (ev.timer.source == randomCardsWithMemoryTimer) {
+
+                if (deck.lastDown == 19) {
+                    al_stop_timer(randomCardsWithMemoryTimer);
+                    return;
+                }
+
+                if (randCardsEval) {
+                    eval_cards();
+                    randCardsEval = false;
+                    return;
+                }
+                numRandomCards++;
+                bool res = deck_reveal_random_card_with_memory(&deck, DWID, DHEI, numRandomCards, memCards, &memCount, memSize, &lastCard);
+                if (res) {
+                    randCardsEval = true;
                 }
             }
         }
@@ -212,6 +236,23 @@ int clear_history(lua_State *L)
     //console.historySize = 0;
     //console.historyIndex = 0;
     //return 0;
+}
+
+
+int win(lua_State *L)
+{
+    // retrieve first parameter, which is a integer
+    int n = lua_gettop(L);
+    if (n != 1) {
+        return luaL_error(L, "win: wrong number of arguments");
+    }
+    if (!lua_isinteger(L, 1)) {
+        return luaL_error(L, "win: wrong argument type");
+    }
+    memSize = lua_tointeger(L, 1);
+    memCount = 0;
+    numRandomCards = 0;
+    al_start_timer(randomCardsWithMemoryTimer);
 }
 
 void eval_cards()

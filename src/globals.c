@@ -68,3 +68,10 @@ ALLEGRO_TIMER *randomCardsTimer;
 float randomCardsTimerInterval;
 int numRandomCards;
 bool randCardsEval;
+
+int memSize;
+ALLEGRO_TIMER *randomCardsWithMemoryTimer;
+float randomCardsWithMemoryInterval;
+int memCount;
+Card memCards[40];
+Card *lastCard;

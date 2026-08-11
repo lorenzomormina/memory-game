@@ -100,10 +100,99 @@ bool deck_reveal_random_card(Deck *d, int w, int h)
         int i;
         do {
             i = rand() % (d->lastDown + 1);
-        }while(d->cards[i].state != CSTATE_FACEDOWN);
-            
+        } while (d->cards[i].state != CSTATE_FACEDOWN);
+
         return deck_reveal_card(d, d->cards[i].xpos + 1, d->cards[i].ypos + 1, w, h);
     }
+}
+
+bool deck_reveal_random_card_with_memory(Deck *d, int w, int h, int numRandCards, Card *memCards, int *memCount, int memSize, Card **lastCard)
+{
+    // second card
+    if (numRandCards % 2 == 0) {
+        // look in memory for a card with the same value as lastCard, which is face down; iterate backwards
+        for (int i = *memCount - 1; i >= 0; i--) {
+            if (memCards[i].value == (*lastCard)->value && memCards[i].state == CSTATE_FACEDOWN) {
+                return deck_reveal_card(d, memCards[i].xpos + 1, memCards[i].ypos + 1, w, h);
+            }
+        }
+
+        // pick random, face down card not from memory
+        if (*memCount < d->lastDown - 20) {
+            int i;
+            do {
+                i = rand() % (d->lastDown + 1);
+                for (int j = 0; j < *memCount; j++) {
+                    if (d->cards[i].value == memCards[j].value) {
+                        i = -1;
+                        break;
+                    }
+                }
+            } while (i == -1 || d->cards[i].state != CSTATE_FACEDOWN);
+
+            // add to memory: if memCount == memSize, shift all elements to the left
+            if (*memCount == memSize) {
+                for (int i = 0; i < *memCount - 1; i++) {
+                    memCards[i] = memCards[i + 1];
+                }
+                memCards[*memCount - 1] = d->cards[i];
+            }
+            else {
+                memCards[*memCount] = d->cards[i];
+                (*memCount)++;
+            }
+
+            return deck_reveal_card(d, d->cards[i].xpos + 1, d->cards[i].ypos + 1, w, h);
+        }
+        else {
+            // pick last card from memory
+            (*memCount)--;
+            return deck_reveal_card(d, memCards[*memCount].xpos + 1, memCards[*memCount].ypos + 1, w, h);
+        }
+    }
+
+    // first card
+    else {
+
+        // if memorycount is less then remaining cards, pick random card not from memory
+        if (*memCount < d->lastDown - 20) {
+
+            // pick random card not from memory
+            int i;
+            do {
+                i = rand() % (d->lastDown + 1);
+                for (int j = 0; j < *memCount; j++) {
+                    if (d->cards[i].index == memCards[j].index) {
+                        i = -1;
+                        break;
+                    }
+                }
+            } while (i == -1 || d->cards[i].state != CSTATE_FACEDOWN);
+
+            // add to memory: if memCount == memSize, shift all elements to the left
+            if (*memCount == memSize) {
+                for (int i = 0; i < *memCount - 1; i++) {
+                    memCards[i] = memCards[i + 1];
+                }
+                memCards[*memCount - 1] = d->cards[i];
+            }
+            else {
+                memCards[*memCount] = d->cards[i];
+                (*memCount)++;
+            }
+
+            // save as last card
+            *lastCard = &(d->cards[i]);
+
+            return deck_reveal_card(d, d->cards[i].xpos + 1, d->cards[i].ypos + 1, w, h);
+        }
+        else {
+            // pick last card from memory
+            (*memCount)--;
+            return deck_reveal_card(d, memCards[*memCount].xpos + 1, memCards[*memCount].ypos + 1, w, h);
+        }
+    }
+
 }
 
 void deck_push_to_bottom(Deck *d, int i)

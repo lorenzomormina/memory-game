@@ -47,6 +47,7 @@ void init()
     lua_register(L, "random_cards", random_cards);
     lua_register(L, "refresh_ui", refresh_ui);
     lua_register(L, "clear_history", clear_history);
+    lua_register(L, "win", win);
     //
 
     srand(time(0));
@@ -75,6 +76,9 @@ void init()
 
     randomCardsTimer = al_create_timer(randomCardsTimerInterval);
     al_register_event_source(eventQueue, al_get_timer_event_source(randomCardsTimer));
+
+    randomCardsWithMemoryTimer = al_create_timer(randomCardsWithMemoryInterval);
+    al_register_event_source(eventQueue, al_get_timer_event_source(randomCardsWithMemoryTimer));
 
     // WARN: this setting won't refresh on F5
     fpsTimer = al_create_timer(1.0 / FPS);
@@ -116,6 +120,12 @@ void resetGame()
     maxScore = 0;
     sprintf(scoreLabel.text, scoreLabel.format, currScore, maxScore);
     deck_shuffle(&deck, &deck_xpos_f, &deck_ypos_f, boardMargin, cardsMargin);
+
+    al_stop_timer(randomCardsTimer);
+    numRandomCards = 0;
+    randCardsEval = 0;
+    al_stop_timer(randomCardsWithMemoryTimer);
+    memCount = 0;
 }
 
 void draw()
@@ -181,6 +191,8 @@ void load_settings(bool first)
 
     if(!first) {
         al_set_timer_speed(timer, TIMER_FLIPBACK);
+        al_set_timer_speed(randomCardsTimer, randomCardsTimerInterval);
+        al_set_timer_speed(randomCardsWithMemoryTimer, randomCardsWithMemoryInterval);
     }
 
     // ---
@@ -313,6 +325,8 @@ void load_settings(bool first)
     }
     numRandomCards = 0;
     randCardsEval = 0;
+
+    randomCardsWithMemoryInterval = lua_getxf("randomCardsWithMemoryInterval");
 }
 
 

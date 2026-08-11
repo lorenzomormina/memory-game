@@ -83,3 +83,10 @@ extern ALLEGRO_TIMER *randomCardsTimer;
 extern float randomCardsTimerInterval;
 extern int numRandomCards;
 extern bool randCardsEval;
+
+extern int memSize;
+extern ALLEGRO_TIMER *randomCardsWithMemoryTimer;
+extern float randomCardsWithMemoryInterval;
+extern int memCount;
+extern Card memCards[40];
+extern Card *lastCard;

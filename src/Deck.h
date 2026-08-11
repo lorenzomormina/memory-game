@@ -46,6 +46,7 @@ void deck_shuffle(Deck *d, int (*x)(Deck *, int, int, int), int (*y)(Deck *, int
 bool deck_reveal_card(Deck *d, int x, int y, int w, int h);
 
 bool deck_reveal_random_card(Deck *d, int w, int h);
+bool deck_reveal_random_card_with_memory(Deck *d, int w, int h, int numRandCards, Card *memCards, int *memCount, int memSize, Card **lastCard);
 
 void deck_push_to_bottom(Deck *d, int i);
 

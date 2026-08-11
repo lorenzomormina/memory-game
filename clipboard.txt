@@ -1,0 +1,108 @@
+bool deck_reveal_random_card_with_memory(
+    Deck *d, 
+    int w, 
+    int h, 
+    int numRandCards, 
+    Card *memCards, 
+    int *memCount, 
+    int memSize, 
+    Card **lastCard)
+
+
+
+2 casi:
+- devo scegliere la prima carta
+- devo scegliere la seconda carta
+
+PRIMA CARTA:
+
+- scelgo una carta che non è in memoria
+    (se non è possibile, scegli la prima della memoria)
+    aggiungo la prima carta in memoria
+
+
+SECONDA CARTA
+
+- cerco una carta uguale in memoria (non discarded, face down), partendo dalle ultime
+    (che non sia l'ultima, ovvero che sia face down)
+    - se trovo la carta:
+        - scelgo la carta, la lascio in memoria, ma l'annullo
+    - se non trovo la carta:
+        - scelgo una carta a caso che non sia tra quelle in memoria
+            la aggiungo alla memoria
+            
+
+--------------
+--------------
+
+
+bool deck_reveal_random_card_with_memory(Deck *d, int w, int h, int numRandCards, Card *memCards, int *memCount, int memSize, Card **lastCard)
+{
+    if (d->lastDown >= 20) {
+
+        // even pick: a card is already up
+        if (numRandCards % 2 == 0) {
+            // look in memory for a card with the same value as lastCard, which is not lastCard
+            for (int i = 0; i < *memCount; i++) {
+                if (memCards[i].value == (*lastCard)->value && memCards[i].state == CSTATE_FACEDOWN) {
+                    return deck_reveal_card(d, memCards[i].xpos + 1, memCards[i].ypos + 1, w, h);
+                }
+            }
+
+            // pick random card, which is not lastCard
+            int i;
+            do {
+                i = rand() % (d->lastDown + 1);
+                if (d->cards[i].value == (*lastCard)->value) {
+                    i = -1;
+                }
+            } while (i == -1 || d->cards[i].state != CSTATE_FACEDOWN);
+
+            // add to memory: if memCount == memSize, shift all elements to the left
+            if (*memCount == memSize) {
+                for (int i = 0; i < *memCount - 1; i++) {
+                    memCards[i] = memCards[i + 1];
+                }
+                memCards[*memCount - 1] = d->cards[i];
+            }
+            else {
+                memCards[*memCount] = d->cards[i];
+                (*memCount)++;
+            }
+
+            return deck_reveal_card(d, d->cards[i].xpos + 1, d->cards[i].ypos + 1, w, h);
+        }
+
+        // odd pick: no card is up
+        else {
+            // pick random card not from memory
+            int i;
+            do {
+                i = rand() % (d->lastDown + 1);
+                for (int j = 0; j < *memCount; j++) {
+                    if (d->cards[i].value == memCards[j].value) {
+                        i = -1;
+                        break;
+                    }
+                }
+            } while (i == -1 || d->cards[i].state != CSTATE_FACEDOWN);
+
+            // add to memory: if memCount == memSize, shift all elements to the left
+            if (*memCount == memSize) {
+                for (int i = 0; i < *memCount - 1; i++) {
+                    memCards[i] = memCards[i + 1];
+                }
+                memCards[*memCount - 1] = d->cards[i];
+            }
+            else {
+                memCards[*memCount] = d->cards[i];
+                (*memCount)++;
+            }
+
+            // save as last card
+            *lastCard = &(d->cards[i]);
+
+            return deck_reveal_card(d, d->cards[i].xpos + 1, d->cards[i].ypos + 1, w, h);
+        }
+    }
+}

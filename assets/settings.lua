@@ -10,6 +10,7 @@ timerFlipback = 0.5
 selectedScale = 1.2
 
 randomCardsTimerInterval = 0.01
+randomCardsWithMemoryInterval = 0.001
 
 scoreLabel = {
     format = "Pairs left: %d. Attempts: %d.",
